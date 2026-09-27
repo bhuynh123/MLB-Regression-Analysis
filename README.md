@@ -50,3 +50,10 @@ Log Relationship ~ Negative - Strong: Moderate:R_P, RA/G Weak:
 Positive - Strong: Moderate: Weak:
 
 Nothing too suprising, only noticeable observation is that there are more, stronger or moderate linear relationships between defensive state(pitching and fielding) and wins than there are offensive stats and wins.
+
+# Model Building
+
+Model_Building.html
+Model_Building2.html
+
+
