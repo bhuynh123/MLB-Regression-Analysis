@@ -1,0 +1,44 @@
+---
+title: "stuff"
+output: html_document
+date: "2025-11-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+
+
+bat <- read_csv("C:/Users/BenAH/Downloads/stat170proj/team_stan_bat.csv")
+field <- read_csv("team_field.csv")
+pitch <- read_csv("team_stan_pitch.csv")
+pos <- read_csv("wins_above_avg_pos.csv")
+
+
+head(bat)
+head(field)
+head(pitch)
+head(pos)
+
+```
+
+
+
+
+
+
+
+```{r}
+combined <- bat %>%
+  left_join(field, by = "Tm") %>%
+  left_join(pitch, by = "Tm") %>%
+  left_join(pos, by = "Tm")
+
+head(combined)
+
+write.csv(combined, "combined_teams.csv", row.names = FALSE)
+```
+
