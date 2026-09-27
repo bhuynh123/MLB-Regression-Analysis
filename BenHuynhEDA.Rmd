@@ -1,0 +1,489 @@
+---
+title: "BenHuynhEDA"
+output: html_document
+date: "2025-11-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(GGally)   
+#install.packages("ggforce")
+library(ggforce)
+library(corrplot)
+
+bat <- read_csv("C:/Users/BenAH/Downloads/stat170proj/team_stan_bat.csv")
+field <- read_csv("team_field.csv")
+pitch <- read_csv("team_stan_pitch.csv")
+pos <- read_csv("wins_above_avg_pos.csv")
+
+
+head(bat)
+head(field)
+head(pitch)
+head(pos)
+
+```
+
+
+
+
+
+```{r}
+
+data <- read_csv("combined_teams.csv")
+
+head(data)
+
+```
+
+
+1. Set Seed and Split Test/Train
+
+```{r}
+set.seed(123)
+
+n <- nrow(data)
+train_index <- sample(1:n, size = 0.7 * n)
+train_data <- data[train_index, ]
+test_data  <- data[-train_index, ]
+```
+
+
+
+```{r}
+y_var <- "W" 
+
+correlations <- train_data %>%
+  select(where(is.numeric)) %>%               
+  summarise(across(-all_of(y_var),             
+                   ~ cor(.x, .data[[y_var]], use = "complete.obs"))) %>%
+  pivot_longer(everything(), names_to = "Variable", values_to = "Correlation") %>%
+  arrange(desc(abs(Correlation)))           
+
+correlations
+```
+
+
+2. Data Description
+
+Size: 21 x 99
+Response Variable: Y = W or Wins (#of games a team won in the season)
+
+```{r}
+
+dim(train_data)
+
+```
+Source : https://www.baseball-reference.com/leagues/majors/2024.shtml
+
+Context: Statistics Gatheredf from the 30 MLB teams during the 2024 Season
+
+(All taken from MLB Website)
+#Bat -- Number of Players used in Games
+BatAge -- Batters’ average age
+Weighted by AB + Games Played
+R/G -- Runs Scored Per Game
+G -- Games Played or Pitched
+PA -- Plate Appearances
+When available, we use actual plate appearances from play-by-play game accounts
+Otherwise estimated using AB + BB + HBP + SF + SH,
+which excludes catcher interferences.
+When this color click for a summary of each PA.
+AB -- At Bats
+R -- Runs Scored/Allowed
+H -- Hits/Hits Allowed
+HR -- Home Runs Hit/Allowed
+RBI -- Runs Batted In
+SB -- Stolen Bases
+CS -- Caught Stealing
+BB -- Bases on Balls/Walks
+SO -- Strikeouts
+BA -- Hits/At Bats
+OBP -- (H + BB + HBP)/(At Bats + BB + HBP + SF)
+For recent years, leaders need 3.1 PA
+per team game played
+SLG -- Total Bases/At Bats or
+(1B + 2*2B + 3*3B + 4*HR)/AB
+For recent years, leaders need 3.1 PA
+per team game played
+OPS -- On-Base + Slugging Percentages
+For recent years, leaders need 3.1 PA
+per team game played
+OPS+ -- OPS+
+100*[OBP/lg OBP + SLG/lg SLG - 1]
+Adjusted to the player’s ballpark(s)
+TB -- Total Bases
+Singles + 2 x Doubles + 3 x Triples + 4 x Home Runs.
+GDP -- Double Plays Grounded Into
+Only includes standard 6-4-3, 4-3, etc. double plays.
+For gamelogs only in seasons we have play-by-play, we include triple plays as well.
+HBP -- Times Hit by a Pitch.
+SH -- Sacrifice Hits (Sacrifice Bunts)
+SF -- Sacrifice Flies
+First tracked in 1954.
+IBB -- Intentional Bases on Balls
+First tracked in 1955.
+LOB -- Runners Left On Base
+#P -- Number of Pitchers used in Games
+PAge -- Pitchers’ average age
+Weighted by 3*GS + G + SV
+RA/G -- Runs Allowed Per Game
+W -- Wins
+L -- Losses
+W-L% -- Win-Loss Percentage
+W / (W + L)
+ERA -- 9 * ER / IP
+For recent years, leaders need 1 IP
+per team game played.
+Bold indicates lowest ERA using current stats
+Gold means awarded ERA title at end of year.
+G -- Games Played or Pitched
+GS -- Games Started
+GF -- Games Finished
+CG -- Complete Game
+tSho -- Shutouts by a team
+No runs allowed in a game by one or more pitchers.
+cSho -- Shutouts
+No runs allowed and a complete game.
+SV -- Saves
+IP -- Innings Pitched
+H -- Hits/Hits Allowed
+R -- Runs Scored/Allowed
+ER -- Earned Runs Allowed
+HR -- Home Runs Hit/Allowed
+BB -- Bases on Balls/Walks
+IBB -- Intentional Bases on Balls
+First tracked in 1955.
+SO -- Strikeouts
+HBP -- Times Hit by a Pitch.
+BK -- Balks
+WP -- Wild Pitches
+BF -- Batters Faced
+ERA+ -- ERA+
+100*[lgERA/ERA]
+Adjusted to the player’s ballpark(s).
+FIP -- Fielding Independent Pitching
+this stat measures a pitcher's effectiveness at preventing HR, BB, HBP and causing SO
+(13*HR + 3*(BB+HBP) - 2*SO)/IP + Constantlg
+The constant is set so that each season major-league average FIP is the same as the major-league avg ERA
+WHIP -- (BB + H)/IP
+For recent years, leaders need 1 IP
+per team game played
+H9 -- 9 x H / IP
+For recent years, leaders need 1 IP
+per team game played
+HR9 -- 9 x HR / IP
+For recent years, leaders need 1 IP
+per team game played
+BB9 -- 9 x BB / IP
+For recent years, leaders need 1 IP
+per team game played
+SO9 -- 9 x SO / IP
+For recent years, leaders need 1 IP
+per team game played
+SO/W -- SO/W or SO/BB
+For recent years, pitching leaders need 1 IP
+per team game played.
+No batting leaders computed.
+LOB -- Runners Left On Base
+ALL P -- All Positions
+SP -- Start Pitcher
+RP -- Reflief Pitcher
+Non-P -- non-Pitcher
+C -- Catcher
+1B -- 1st Base
+2B -- 2nd Base
+3b -- 3rd Base
+SS -- ShortStop
+LF -- Left Field
+CF -- Center Field
+RF -- Right Field
+OF(All) - Outfield(ALL)
+DH - Designated Hitter
+PH - Pinch Hitter
+#Fld -- Number of Players used as Fielders
+RA/G -- Runs Allowed Per Game
+DefEff -- Defensive Efficiency
+Percentage of balls in play converted into outs
+This is an estimate based on team defensive and pitching stats.
+We utilize two estimates of plays made.
+One using innings pitched, strikeouts, double plays and outfield assists.
+And the other with batters faced, strikeouts, hits allowed, walks allowed, hbp, and .71 * errors committed (avg percent of errors that result in an ROE)
+Total plays available are plays made + hits allowed - home runs + error committed estimate.
+G -- Games Played or Pitched
+GS -- Games Started
+CG -- Complete Game
+Inn -- Innings Played in Field
+Ch -- Defensive Chances
+Putouts + Assists + Errors
+PO -- Putouts
+A -- Assists
+E -- Errors Committed
+DP -- Double Plays Turned
+Fld% -- Fielding Percentage
+(Putouts + Assists) / (Putouts + Assists + Errors)
+Rtot -- Total Zone Total Fielding Runs Above Avg
+The number of runs above or below average the player was worth based on the number of plays made.
+This number combines the Rtz, Rdp, Rof, Rcatch numbers into a total defensive contribution.
+See the glossary section for a more complete explanation.
+Provided by BaseballProjection.com
+Rtot/yr -- Total Zone Total Fielding Runs Above Avg per 1,200 Inn
+The number of runs above or below average the fielder was worth per 1,200 Innings (approx 135 games).
+This number combines the Rtz, Rdp, Rof, Rcatch numbers into a total defensive contribution.
+See the glossary section for a more complete explanation.
+Provided by BaseballProjection.com
+Rdrs -- BIS Defensive Runs Saved Above Avg
+The number of runs above or below average the team was worth based on their overall defense.
+This number combines the individual players' defensive runs saved as well as team-level runs saved from shifting and positioning into a total team defensive contribution.
+Provided by Baseball Info Solutions
+Rdrs/yr -- BIS Defensive Runs Saved Above Avg per 1,200 Inn
+The number of runs above or below average the team's fielders were worth per 1,200 Innings (approx 135 games).
+This number combines the Rpm, Rdp, and Rgood numbers into a total defensive contribution.
+For pitchers, this is set to 200 Innings.
+This does not include any team-level runs saved from positioning or shifting.
+Provided by Baseball Info Solutions
+Rgood -- BIS Good Plays/Misplays Runs Above Avg
+
+
+
+3. Descriptive Statistics
+
+```{r}
+
+#install.packages("skimr")
+library(skimr)
+
+skim(train_data)
+
+
+```
+
+#. variabe: shape w/, skew if any, ~mean, f~ median
+
+1. approx norm, slight right skew, 55.24, 55
+2. norm, 27.83, 27.8
+3. not norm, slight right skew, 4.38, 4.28
+4. norm, 6085, 6067
+5. norm, 5456, 5460
+6. not norm, right skew, 1321, 1318
+7. not norm, right skew, 259, 257
+8. not norm, right skew, 259, 257
+9. not norm, right skew, 23, 23
+10. not norm, right skew, 183, 179
+11. not norm, right skew, 677, 661
+12. not norm, right skew 677, 661
+13. not norm, righ skew, 32, 26
+14. norm, 499, 490
+15. not normal, right skew, 1398, 1382
+16. norm, 0.242, 0.242
+17. norm, 0.311, 0.309
+18. approx norm, right skew, 0.398, 0.393
+19. approx norm, right skew, 0.710, 0.703
+20. norm, 100.19, 100
+21. not norm, right skew, 2174, 2139
+22. not norm, right skew, 105, 105
+23. not norm, right skew, 69, 64
+24. not norm, right skew, 14, 14
+25. norm, 42, 43
+26. not norm, right skew, 18, 15
+27. norm, 1083, 1099
+28. norm, 55, 55
+29. approx norm, right skew, 4.4, 4.31
+30. norm, 0.698, 0.702
+31. norm, 1076, 1080
+32. norm, 12940, 12936
+33. norm, 5779, 5771
+34. norm, 4314, 4312
+35. norm, 1378, 1366
+36. approx norm, slight right skew, 88, 87
+37. not norm, right skew, 122, 123
+38. norm, 0.985, 0.985
+39. not norm, left skew, -0.62, 4
+40. not norm, still symmetric, -0.048, 0
+41. not norm, slight left skew, -1.43, -3
+42. not norm, still symmetric, 0, 0
+43. not norm, slight left skew, -0.81, -1
+44. norm, 33, 32
+45. norm, 28.9, 28.9
+46. norm, 81.2, 82
+47, approx norm, right skew, 4.07, 4.04
+48. not norm, right skew, 10.3, 11
+49. not norm, right skew, 0.43, 0
+50. approx norm, right skew, 43, 40
+51. norm, 1437, 1437
+52. norm, 1324, 2303
+53. norm, 713, 699
+54. norm, 650, 648
+55. norm, 182, 181,
+56. norm, 494, 492
+57. nor norm right skew, 15, 14
+58. norm, 1371, 1371
+59. not norm, right skew, 68, 66
+60. not norm, right skew, 68, 66
+61. approx norm, right skew, 48, 46
+62. norm, 6080, 6078
+63. norm, 101, 101
+64. norm, 4.07, 4.04
+65. norm, 1.26, 1.25
+66. norm, 8.29, 8.2
+67. norm, 1.13, 1.1
+68. norm, 3.1, 3.1
+69. norm, 8.59. 8.6
+70. norm 2.81, 2.78
+71. norm, 1074, 1080
+72. not norm, right skew, 16.6, 17
+73. not norm, left skew, -0.46, 0.4
+74. not norm, left skew, -0.27, 0
+75. approx norm, right skew, 0.53, 1
+76. not norm, left skew, -1.03, -0.9
+77. not norm, left skew, -0.31, -0.6
+78. not norm, left skew, -0.21, -0.2
+79. not norm, left skew, -1.03, -1
+80/ norm, -0.2, -0.3
+81. norm, 0.048, 0.2
+82. not norm, right skew, 1.53, 1.6
+83. norm, -0.18, -0.1
+84. approx norm, right skew, 0.47, -0.2
+85. norm, -0.16, -0.3
+86. not norm, right skew, 0.13, -0.8
+87. norm, 0.009, -0.3
+88. not norm, left skew, -0.6, -0.6
+
+
+4. Visual Explanation
+
+```{r}
+
+
+
+
+long_data <- train_data %>%
+  select(where(is.numeric)) %>%
+  pivot_longer(everything(), names_to = "Variable", values_to = "Value")
+
+
+n_vars <- length(unique(long_data$Variable))
+
+
+plots_per_page <- 9
+n_pages <- ceiling(n_vars / plots_per_page)
+
+
+for (i in 1:n_pages) {
+  p <- ggplot(long_data, aes(x = Value)) +
+    geom_histogram(bins = 20, fill = "steelblue", color = "white") +
+    facet_wrap_paginate(~ Variable, scales = "free", ncol = 3, nrow = 3, page = i) +
+    labs(title = paste("Numeric Variable Distributions – Page", i)) +
+    theme_minimal()
+  
+  print(p)
+}
+
+
+
+
+```
+Approx Normal, Symmetric: #Fld, #P, 1B_Pos, 3B_Pos, A, BA, BF, BK, C, DH, DP, H9, HitAllow, Rdrs/yr, RF, Rgood, SO/W, SS, W, WHIP
+Approx Normal, right skew: #Bat, 2B_Bat, 3B_Bat, AllP, CF, CS, E, ER, ERA, FIP, HBP_Bat,HR_Bat, HR9,OBP, R/G, SP, TB, WP
+Approx Normal, left skew: AB, BatAge, BB_Bat, Ch, DefEff, LOB_Bat, LOB_P,Rtot/yr, SF, SO_P, SO9, tSho
+Not normal, Symmetric: 2B_Pos, CG_F, Fld%, H_Bats, HR_P, Rdrs, Rk
+Not Normal, right skew:cSho, IBB_Bat, IBB_P, Non-p, OF(ALL), OPS
+Not normal, left skew: BB_P, RP, Wins_Abv_Avg
+not normal: BB9, ERA+, GDP, HBP_P,Inn, IP, LF, OPS+, PA, PAge, PH, PO, R_Bat_R_P, RA/G_P, RBI, Rtot, SB, SH, SLG, SO_Bat, SV
+
+
+```{r}
+
+
+numeric_data <- train_data %>%
+  select(where(is.numeric))
+
+cor_matrix <- cor(numeric_data, use = "pairwise.complete.obs")
+#cor_matrix
+high_corr <- as.data.frame(as.table(cor_matrix)) %>%
+  rename(Var1 = Var1, Var2 = Var2, correlation = Freq) %>%
+  filter(Var1 != Var2) %>%                        
+  mutate(pair = paste(pmin(as.character(Var1), as.character(Var2)),
+                      pmax(as.character(Var1), as.character(Var2)), sep = " - ")) %>%
+  distinct(pair, .keep_all = TRUE) %>%            
+  filter(abs(correlation) > 0.7) %>%              #
+  arrange(desc(abs(correlation)))
+
+high_corr
+
+
+options(repr.plot.width = 15, repr.plot.height = 15)
+corrplot(cor_matrix, method = "color", type = "upper",
+         tl.col = "black", tl.cex = 0.8)
+
+```
+
+There are too many variables to read on a standard correlation matrix. Instead I used chatgpt to create a table listing every pair with correlation of coefficient of 0.7 and higher. There is a lot of interaction between certain variables, as some variables might be a formula or a version of another variable(for example: Rtot and Rtot/yr which is just a yearly standardized version of Rtot or H9 which is hiter per 9 innings or hit allow which is total hits allowed). This table basically ask us to choose one variable or another as they are statistically and contextually the same.
+
+
+```{r}
+
+
+long_data <- train_data %>%
+  select(where(is.numeric)) %>%
+  pivot_longer(cols = -all_of(y_var), names_to = "Variable", values_to = "Value")
+
+
+n_vars <- length(unique(long_data$Variable))
+
+
+plots_per_page <- 9
+n_pages <- ceiling(n_vars / plots_per_page)
+
+for (i in 1:n_pages) {
+  p <- ggplot(long_data, aes(x = Value, y = .data[[y_var]])) +
+    geom_point(alpha = 0.6, color = "steelblue", size = 2) +
+    facet_wrap_paginate(~ Variable, scales = "free_x", ncol = 3, nrow = 3, page = i) +
+    labs(
+      title = paste("Scatterplots of", y_var, "vs. Numeric Variables – Page", i),
+      x = "Predictor Value",
+      y = y_var
+    ) +
+    theme_minimal(base_size = 12)
+  
+  print(p)
+}
+
+```
+
+Positive Relationship~
+Strong linear:DefEff, Non-P, OPS+, SV, Wins_Abv_Avg
+Moderate Linear:BB_Bat, DH, ERA+, HR_Bat, OF(ALL), OPS, R/G, R_Bat, RBI, SLG, SO_P, SO9, TB, tSho
+Weak Linear: #Fld, 1b_pos, 3b_pos, BA, C, Fld%, LF, OBP, PA, PH, RF, SP
+
+Negative Relationship~
+Strong Linear: H9, HitAllow, Rk, WHIP
+Moderate Linear: ER, ERA, LOB_P,
+Weak Linear:BB_P, BB9, BF, E, FIP, HR_P, IBB_P, Inn, SH, SO/W
+
+Not Pos or Neg but Linear:#Bat, #P, 2b_Bat, A, HBP_P, IBB_BAT, IP, SS, WP
+No Relationship:2b_pos, 3b_BAt, AB, AllP, BatAge, BK, CF, CG_F, CS, cSho, GDP, H_Bats, HBP_Bat, HR9, PAge, PO, Rdrs, Rdrs/yr, Rgood, RP, Rtot, Rtot/yr, SB, SF, SO_Bat
+
+(Quadratic or Parabola)
+Stong Curvilinear:
+Moderate CurvilinearL:LOB_BAT
+Weak Curvilinear: Ch, DP
+
+Log Relationship ~
+Negative -
+Strong: 
+Moderate:R_P, RA/G
+Weak:
+
+Positive -
+Strong:
+Moderate:
+Weak:
+
+Nothing too suprising, only noticeable observation is that there are more, stronger or moderate linear relationships between defensive state(pitching and fielding) and wins than there are offensive stats and wins.
