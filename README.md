@@ -55,5 +55,20 @@ Nothing too suprising, only noticeable observation is that there are more, stron
 
 Model_Building.html
 Model_Building2.html
+Final_Model.html
+
+Investigated features and model performance, then took those findings to tune another model and repeat. Looked at analytics for multicollinearity, interaction, and other variables that would prevent the model from being ineffective or not generalizing well.
+
+Final model Conclusion:
+
+(W ~ OPS + ERA + HR_Bat + Rdrs + FIP + DH_centered + DH_c2
+
+train R^2: 0.9268 test R^2 : 0.7439 RMSE: 6.5602
+
+The test R^2 r^2 = 0.7439 means the model generalizes reasonably well, indicating a moderate predictive stability. The RMSE is fairly low also relative to the 162 games games played in a single baseball season.
+
+The final model: (W ~ OPS + ERA + HR_Bat + Rdrs + FIP + DH_centered + DH_c2. The variables all play a crucial roll in development of the model. I believe the most influential step was the initial single order term selection during EDA. Although DH is a significant polynomial term, I don’t think it was the most influential. I did drop some predictors initially, as in the context of the data they were redundant but besidses, that, there were not too many significant decisions that didn’t come from the initial EDA.
+
+Balancing fit vs interpretability was not a challenge with my model. The only variable that could provided a challenge was the DH or designated hitter variable. In order to apply it to our linear model there was no need for a transformation or anything too complicated, just squaring and centering the variable. I believe this doesn’t influence the interpretability at all. Because of this, I could really focus on fit and that is reflected in the model performance. Would get rid of DH to make model generalize better but for assignment parameters, my model is as shown.
 
 
